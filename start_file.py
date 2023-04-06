@@ -4,7 +4,8 @@ import tkinter as t
 
 # tk setup
 from charges_class import Charge
-from constants import ST_CHARGE, ST_RAD, W_X, W_Y, CANVAS_WIDTH, CANVAS_X, ST_LENGTH, ST_PTN, COLOR_LIST
+from constants import ST_CHARGE, ST_RAD, W_X, W_Y, CANVAS_WIDTH, CANVAS_X, ST_LENGTH, ST_PTN, COLOR_LIST, \
+    COEFF
 
 root = t.Tk()
 root.geometry(f'{W_X}x{W_Y}')
@@ -79,7 +80,6 @@ def left_bt_prsd(event):
                 allowed_to_place = False
     else:
         place_charge_btn.config(background='#dadada')
-
 
 
 def right_bt_prsd(event):
@@ -166,6 +166,7 @@ def draw_line(ch_list):
     root.unbind('<ButtonPress-1>')
     root.unbind('<B1-Motion>')
     root.unbind('<ButtonRelease-1>')
+    root.unbind('<ButtonPress-3>')
     for i in ch_list:
         changed = False
         if i.charge < 0:
@@ -191,15 +192,66 @@ def draw_line(ch_list):
                 _.charge = -_.charge
     enable_all()
     root.bind('<ButtonPress-1>', left_bt_prsd)
+    root.bind('<ButtonPress-3>', right_bt_prsd)
+
+
+def count_pt_for_ch(charge, i, j):
+    x, y = charge.x, charge.y
+    distance = ((i - x) ** 2 + (j - y) ** 2) ** 0.5
+    return charge.charge / distance
+
+
+def count_potential_in_spot(i, j, ch_list):
+    cur_pt = sum([count_pt_for_ch(charge, i, j) for charge in ch_list])
+    return cur_pt
+
+
+def is_outside_ch_pt(cur_x, cur_y, ch_list):
+    for i in ch_list:
+        if (cur_x - i.x) ** 2 + (cur_y - i.y) ** 2 < i.radius ** 2:
+            return False
+        else:
+            continue
+    return True
+
+
+def draw_potentials(ch_list, st_pt):
+    global cur_colors
+    if not cur_colors:
+        cur_colors = COLOR_LIST.copy()
+    new_color = cur_colors[random.randint(0, len(cur_colors) - 1)]
+    cur_colors.remove(new_color)
+    disable_all()
+    root.unbind('<ButtonPress-1>')
+    root.unbind('<B1-Motion>')
+    root.unbind('<ButtonRelease-1>')
+    root.unbind('<ButtonPress-3>')
+    root.update()
+    for i in range(CANVAS_WIDTH):  # x
+        for j in range(W_Y):  # y
+            if is_outside_ch_pt(i, j, charges):
+                cur_pt = count_potential_in_spot(i, j, ch_list) * COEFF
+                if st_pt - 0.1 < cur_pt < st_pt + 0.1:
+                    canvas.create_line(i - 0.5, j - 0.5,
+                                       i + 0.5, j + 0.5, width=3, fill='blue')
+                    canvas.update()
+    enable_all()
+    root.bind('<ButtonPress-1>', left_bt_prsd)
+    root.bind('<ButtonPress-3>', right_bt_prsd)
 
 
 def create_grid():
     # horizontal
     for i in range(26):
         canvas.create_line(CANVAS_X, 2 + i * 40, W_X, 2 + i * 40, fill='#c4c4c4')
+        canvas.create_text(CANVAS_X + 3, 2 + i * 40, text=i, anchor='nw', font='Calibri 10')
     # vertical
     for i in range(36):
         canvas.create_line(CANVAS_X + i * 40, 0, CANVAS_X + i * 40, W_Y - 60, fill='#c4c4c4')
+        if i > 0:
+            canvas.create_text(CANVAS_X + i * 40, 3, text=i, anchor='nw', font='Calibri 10')
+    canvas.create_line(CANVAS_X, 2, W_X, 2, width=5, arrow=t.LAST)
+    canvas.create_line(CANVAS_X, 0, CANVAS_X, W_Y - 58, width=5, arrow=t.LAST)
     canvas.create_line(CANVAS_X, 2, W_X, 2, width=5, arrow=t.LAST)
     canvas.create_line(CANVAS_X, 0, CANVAS_X, W_Y - 58, width=5, arrow=t.LAST)
 
@@ -234,7 +286,12 @@ def clear_field():
 
 
 def draw_srfs():
-    pass
+    try:
+        st_pt = float(potent_inp.get())
+    except ValueError:
+        st_pt = ST_PTN
+        potent_inp.insert(0, ST_PTN)
+    draw_potentials(charges, st_pt)
 
 
 def clear_srfs():
@@ -262,9 +319,17 @@ def change_spec_charge():
     root.bind('<ButtonPress-1>', left_bt_prsd)
 
 
-help_btn = t.Button(text='Помощь', width=13, height=1, command=open_help, font='Calibri 20')
-help_btn.pack()
-help_btn.place(x=(W_X - CANVAS_WIDTH) - 20, y=20, anchor='ne')
+def save_coords():
+    pass
+
+
+def load_coords():
+    pass
+
+
+task_btn = t.Button(text='Задача', width=13, height=1, command=open_help, font='Calibri 20')
+task_btn.pack()
+task_btn.place(x=(W_X - CANVAS_WIDTH) - 20, y=20, anchor='ne')
 
 start_btn = t.Button(text='Заставка', width=13, height=1, command=open_start, font='Calibri 20')
 start_btn.pack()
@@ -330,6 +395,23 @@ coord_label = t.Label(text='Координаты зарядов', font='Calibri 
 coord_label.pack()
 coord_label.place(x=(W_X - CANVAS_WIDTH) // 2, y=580, anchor='center')
 
+coords_list = t.Label(text='', font='Calibri 25', width=25, height=9)
+coords_list.pack()
+coords_list.place(x=20, y=620, anchor='nw')
+
+menu = t.Menu(root, tearoff=0)
+root.config(menu=menu)
+
+file_edit = t.Menu(menu, tearoff=0)
+
+menu.add_cascade(label='Файл', menu=file_edit)
+file_edit.add_command(label='Сохранить координаты в файл', command=save_coords)
+file_edit.add_command(label='Загрузить координаты из файла', command=load_coords)
+
+help_btn = t.Menu(menu, tearoff=0)
+menu.add_cascade(label='Помощь', menu=help_btn)
+help_btn.add_command(label='Помощь', command=open_help)
+
 
 def input_protection(inp_message, inp_field):
     message = inp_message
@@ -354,4 +436,3 @@ create_grid()
 root.bind('<ButtonPress-1>', left_bt_prsd)
 root.bind('<ButtonPress-3>', right_bt_prsd)
 root.mainloop()
-
