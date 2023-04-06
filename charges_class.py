@@ -16,28 +16,46 @@ class Charge:
         self.charge = kwargs['ch']
         self.prev_x, self.prev_y = self.x, self.y
         self.img = self.canvas.create_oval(self.x - self.radius, self.y - self.radius,
-                                           self.x + self.radius, self.y + self.radius, width=2)
+                                           self.x + self.radius, self.y + self.radius, width=2, tags='charge')
         self.arrow = tkinter.LAST
         if self.charge < 0:
-            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y),
+            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
+                                                 tags=f'sign{id(self)}'),
                          None)
             self.arrow = tkinter.FIRST
         else:
-            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y),
-                         self.canvas.create_line(self.x, self.y - self.radius, self.x, self.y + self.radius))
+            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
+                                                 tags=f'sign{id(self)}'),
+                         self.canvas.create_line(self.x, self.y - self.radius, self.x, self.y + self.radius,
+                                                 tags=f'sign{id(self)}'))
 
-    def select(self, mouse_x, mouse_y):
+    def select(self, mouse_x, mouse_y, color='black'):
         if self.radius ** 2 > (mouse_x - self.x) ** 2 + (mouse_y - self.y) ** 2:
             self.selected = True
             self.canvas.delete(self.img)
             self.img = self.canvas.create_oval(self.x - self.radius, self.y - self.radius,
-                                               self.x + self.radius, self.y + self.radius, width=5)
+                                               self.x + self.radius, self.y + self.radius, width=5,
+                                               tags='charge',
+                                               outline=color)
 
     def deselect(self):
         self.selected = False
         self.canvas.delete(self.img)
         self.img = self.canvas.create_oval(self.x - self.radius, self.y - self.radius,
-                                           self.x + self.radius, self.y + self.radius, width=2)
+                                           self.x + self.radius, self.y + self.radius, width=2, tags='charge')
+        self.canvas.delete(f'sign{id(self)}')
+        if self.charge < 0:
+
+            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
+                                                 tags=f'sign{id(self)}'),
+                         None)
+            self.arrow = tkinter.FIRST
+        else:
+            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
+                                                 tags=f'sign{id(self)}'),
+                         self.canvas.create_line(self.x, self.y - self.radius, self.x, self.y + self.radius,
+                                                 tags=f'sign{id(self)}'))
+            self.arrow = tkinter.LAST
 
     def change_coords(self, new_x, new_y):
         self.x, self.y = new_x, new_y
@@ -54,7 +72,7 @@ class Charge:
 
     def __str__(self):
         return f"x: {self.x}, y: {self.y}, radius: {self.radius}, is_selected: {self.selected}, " \
-               f"charge: {self.charge}"
+               f"charge: {self.charge} {id(self)}"
 
 
 if __name__ == '__main__':
