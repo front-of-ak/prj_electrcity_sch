@@ -23,14 +23,13 @@ cur_colors = COLOR_LIST.copy()
 def motion_handler(event):
     """function for moving the charge with left click"""
     selected_charges = list(filter(lambda x: x.selected, charges))
-    if selected_charges:
+    if selected_charges and CANVAS_X < event.x < W_X and 0 < event.y < W_Y:  # rework
         moving_charge = selected_charges[-1]
         moving_charge.change_coords(event.x, event.y)
 
 
 def left_bt_rlsd(event):
     """function for moving charge to final position or to returning it to the start"""
-    enable_all()
     selected_charge = list(filter(lambda x: x.selected, charges)).pop()
     can_move = True
     for i in charges:
@@ -43,32 +42,86 @@ def left_bt_rlsd(event):
     else:
         canvas.delete('lines')
         selected_charge.prev_x, selected_charge.prev_y = selected_charge.x, selected_charge.y
-    list(filter(lambda x: x.selected, charges)).pop().deselect()
     root.bind('<ButtonPress-1>', left_bt_prsd)
-    root.bind('<ButtonPress-3>', right_bt_prsd)
     root.unbind('<B1-Motion>')
     root.unbind('<ButtonRelease-1>')
+    charge_inp.focus()
+    charge_inp.icursor(len(charge_inp.get()))
+
+
+#         for i in charges:
+#             i.select(cur_x, cur_y)
+#         if list(filter(lambda x: x.selected, charges)):
+#             disable_all()
+#             root.unbind('<ButtonPress-1>')
+#             root.bind('<B3-Motion>', motion_handler)
+#             root.bind('<ButtonRelease-3>', right_bt_rlsd)
+#             root.unbind('<ButtonPress-3>')
+
+
+def save_data_from_inp():
+    selected_charge = list(filter(lambda x: x.selected, charges))
+    if selected_charge:
+        selected_charge = selected_charge[-1]
+        new_charge = charge_inp.get()
+        selected_charge.charge = float(new_charge)
+
+
+def deselection_process():
+    next_click = False
+    save_data_from_inp()
+    for i in charges:
+        if i.selected:
+            next_click = True
+        i.deselect()
+    enable_all()
+    return next_click
 
 
 def left_bt_prsd(event):
-    """function for placing charge and selecting it with lb"""
-    global allowed_to_place
+    """function for placing charge and selecting it with rb"""
     cur_x, cur_y = event.x, event.y
     if CANVAS_X < cur_x < W_X:
+        charge_selected = False
         for i in charges:
-            i.select(cur_x, cur_y)
-        if list(filter(lambda x: x.selected, charges)):
-            disable_all()
-            root.unbind('<ButtonPress-1>')
-            root.bind('<B1-Motion>', motion_handler)
-            root.bind('<ButtonRelease-1>', left_bt_rlsd)
-            root.unbind('<ButtonPress-3>')
-        else:
-            can_place = True
+            if not list(filter(lambda x: x.selected, charges)):
+                if i.in_the_charge(cur_x, cur_y):
+                    charge_selected = True
+                    if list(filter(lambda x: x.selected, charges)):
+                        disable_all()
+                        charge_inp["state"] = 'normal'
+                        root.bind('<B1-Motion>', motion_handler)
+                        root.bind('<ButtonRelease-1>', left_bt_rlsd)
+                        root.unbind('<ButtonPress-1>')
+            else:
+                if i.selected and i.in_the_charge(cur_x, cur_y):
+                    charge_selected = True
+                    disable_all()
+                    charge_inp["state"] = 'normal'
+                    root.bind('<B1-Motion>', motion_handler)
+                    root.bind('<ButtonRelease-1>', left_bt_rlsd)
+                    root.unbind('<ButtonPress-1>')
+                elif i.in_the_charge(cur_x, cur_y):
+                    for j in charges:
+                        j.deselect()
+                    i.select(cur_x, cur_y)
+                    charge_selected = True
+                    disable_all()
+                    charge_inp["state"] = 'normal'
+                    root.bind('<B1-Motion>', motion_handler)
+                    root.bind('<ButtonRelease-1>', left_bt_rlsd)
+                    root.unbind('<ButtonPress-1>')
+
+        next_click = False
+        if not charge_selected:
+            next_click = deselection_process()
+
+        can_place = True
+        if not next_click:
             for i in charges:
                 if i.check_intersect(cur_x, cur_y):
                     can_place = False
-            if can_place and allowed_to_place:
+            if can_place:
                 try:
                     charges.append(Charge(canvas=canvas, x=cur_x, y=cur_y, rad=ST_RAD,
                                           ch=float(charge_inp.get())))
@@ -76,24 +129,8 @@ def left_bt_prsd(event):
                     charges.append(Charge(canvas=canvas, x=cur_x, y=cur_y, rad=ST_RAD,
                                           ch=ST_CHARGE))
                     charge_inp.insert(0, ST_CHARGE)
-                place_charge_btn.config(background='#dadada')
-                allowed_to_place = False
     else:
-        place_charge_btn.config(background='#dadada')
-
-
-def right_bt_prsd(event):
-    cur_x, cur_y = event.x, event.y
-    if CANVAS_X < cur_x < W_X:
-        for i in charges:
-            i.select(cur_x, cur_y, 'blue')
-        if list(filter(lambda x: x.selected, charges)):
-            disable_all()
-            root.unbind('<ButtonPress-1>')
-            change_chr_btn['state'] = 'normal'
-            charge_inp['state'] = 'normal'
-            place_charge_btn.config(text='Отмена выбора', command=undo_charge)
-            place_charge_btn['state'] = 'normal'
+        deselection_process()
 
 
 def operation_func(ch, x_ch, y_ch, cur_x, cur_y):
@@ -128,34 +165,6 @@ def is_outside_ch(cur_x, cur_y, ch_list, cur_ch):
     return True
 
 
-def disable_all():
-    start_btn['state'] = 'disabled'
-    help_btn['state'] = 'disabled'
-    charge_inp['state'] = 'disabled'
-    place_charge_btn['state'] = 'disabled'
-    build_field_lines_btn['state'] = 'disabled'
-    clear_field_lines_btn['state'] = 'disabled'
-    potent_inp['state'] = 'disabled'
-    build_surface_btn['state'] = 'disabled'
-    clear_surface_btn['state'] = 'disabled'
-    # clear_all_btn['state'] = 'disabled'
-    clear_all_btn['state'] = 'disabled'
-
-
-def enable_all():
-    start_btn['state'] = 'normal'
-    help_btn['state'] = 'normal'
-    charge_inp['state'] = 'normal'
-    place_charge_btn['state'] = 'normal'
-    build_field_lines_btn['state'] = 'normal'
-    clear_field_lines_btn['state'] = 'normal'
-    potent_inp['state'] = 'normal'
-    build_surface_btn['state'] = 'normal'
-    clear_surface_btn['state'] = 'normal'
-    # clear_all_btn['state'] = 'normal'
-    clear_all_btn['state'] = 'normal'
-
-
 def draw_line(ch_list):
     global cur_colors
     if not cur_colors:
@@ -166,7 +175,6 @@ def draw_line(ch_list):
     root.unbind('<ButtonPress-1>')
     root.unbind('<B1-Motion>')
     root.unbind('<ButtonRelease-1>')
-    root.unbind('<ButtonPress-3>')
     for i in ch_list:
         changed = False
         if i.charge < 0:
@@ -192,7 +200,6 @@ def draw_line(ch_list):
                 _.charge = -_.charge
     enable_all()
     root.bind('<ButtonPress-1>', left_bt_prsd)
-    root.bind('<ButtonPress-3>', right_bt_prsd)
 
 
 def count_pt_for_ch(charge, i, j):
@@ -225,19 +232,19 @@ def draw_potentials(ch_list, st_pt):
     root.unbind('<ButtonPress-1>')
     root.unbind('<B1-Motion>')
     root.unbind('<ButtonRelease-1>')
-    root.unbind('<ButtonPress-3>')
     root.update()
-    for i in range(CANVAS_WIDTH):  # x
-        for j in range(W_Y):  # y
-            if is_outside_ch_pt(i, j, charges):
-                cur_pt = count_potential_in_spot(i, j, ch_list) * COEFF
-                if st_pt - 0.1 < cur_pt < st_pt + 0.1:
-                    canvas.create_line(i - 0.5, j - 0.5,
-                                       i + 0.5, j + 0.5, width=3, fill='blue')
-                    canvas.update()
+    if charges:
+        for i in range(CANVAS_WIDTH):  # x
+            for j in range(W_Y):  # y
+                if is_outside_ch_pt(i, j, charges):
+                    cur_pt = count_potential_in_spot(i, j, ch_list) * COEFF
+                    print(cur_pt)
+                    if st_pt - 0.07 < cur_pt < st_pt + 0.07:
+                        canvas.create_line(i - 0.5 + CANVAS_WIDTH, j - 0.5,
+                                           i + 0.5 + CANVAS_WIDTH, j + 0.5, width=3, fill=new_color)
+                        canvas.update()
     enable_all()
     root.bind('<ButtonPress-1>', left_bt_prsd)
-    root.bind('<ButtonPress-3>', right_bt_prsd)
 
 
 def create_grid():
@@ -256,6 +263,33 @@ def create_grid():
     canvas.create_line(CANVAS_X, 0, CANVAS_X, W_Y - 58, width=5, arrow=t.LAST)
 
 
+def disable_all():
+    start_btn['state'] = 'disabled'
+    task_btn['state'] = 'disabled'
+    charge_inp['state'] = 'disabled'
+    # place_charge_btn['state'] = 'disabled'
+    build_field_lines_btn['state'] = 'disabled'
+    clear_field_lines_btn['state'] = 'disabled'
+    potent_inp['state'] = 'disabled'
+    build_surface_btn['state'] = 'disabled'
+    clear_surface_btn['state'] = 'disabled'
+    # clear_all_btn['state'] = 'disabled'
+    clear_all_btn['state'] = 'disabled'
+
+
+def enable_all():
+    start_btn['state'] = 'normal'
+    task_btn['state'] = 'normal'
+    charge_inp['state'] = 'normal'
+    # place_charge_btn['state'] = 'normal'
+    build_field_lines_btn['state'] = 'normal'
+    clear_field_lines_btn['state'] = 'normal'
+    potent_inp['state'] = 'normal'
+    build_surface_btn['state'] = 'normal'
+    clear_surface_btn['state'] = 'normal'
+    # clear_all_btn['state'] = 'normal'
+    clear_all_btn['state'] = 'normal'
+
 def open_start():
     pass
 
@@ -264,10 +298,10 @@ def open_help():
     pass
 
 
-def place_charge():
-    global allowed_to_place
-    place_charge_btn.config(background='aliceblue')
-    allowed_to_place = True
+# def place_charge():
+#     global allowed_to_place
+#     place_charge_btn.config(background='aliceblue')
+#     allowed_to_place = True
 
 
 def clear_all_charges():
@@ -298,13 +332,13 @@ def clear_srfs():
     pass
 
 
-def undo_charge():
-    list(filter(lambda x: x.selected, charges))[-1].deselect()
-    change_chr_btn["state"] = 'disabled'
-    enable_all()
-    root.bind('<ButtonPress-1>', left_bt_prsd)
-    place_charge_btn.config(text='Поставить заряд', command=place_charge)
-
+# def undo_charge():
+#     list(filter(lambda x: x.selected, charges))[-1].deselect()
+#     change_chr_btn["state"] = 'disabled'
+#     enable_all()
+#     root.bind('<ButtonPress-1>', left_bt_prsd)
+#     place_charge_btn.config(text='Поставить заряд', command=place_charge)
+#
 
 def change_spec_charge():
     new_ch = float(inp_value_ch.get())
@@ -313,8 +347,7 @@ def change_spec_charge():
         sel_ch = selected.pop()
         sel_ch.charge = new_ch
         sel_ch.deselect()
-    change_chr_btn["state"] = 'disabled'
-    place_charge_btn.config(text='Поставить заряд', command=place_charge)
+    # place_charge_btn.config(text='Поставить заряд', command=place_charge)
     enable_all()
     root.bind('<ButtonPress-1>', left_bt_prsd)
 
@@ -335,8 +368,6 @@ start_btn = t.Button(text='Заставка', width=13, height=1, command=open_s
 start_btn.pack()
 start_btn.place(x=20, y=20)
 
-# first_brd_line = canvas_2.create_line(0, 80, (W_X - CANVAS_WIDTH), 80, width=1)
-
 charge_label = t.Label(text='Величина заряда:', font='Calibri 18', background='white')
 charge_label.pack()
 charge_label.place(x=20, y=80)
@@ -345,11 +376,6 @@ inp_value_ch = t.StringVar(value=ST_CHARGE)
 charge_inp = t.Entry(textvariable=inp_value_ch, font='Calibri 17')
 charge_inp.pack()
 charge_inp.place(x=20, y=120, height=48, width=195)
-
-place_charge_btn = t.Button(text='Поставить заряд', width=17, height=1, command=place_charge,
-                            font='Calibri 16')
-place_charge_btn.pack()
-place_charge_btn.place(x=(W_X - CANVAS_WIDTH) - 20, y=120, anchor='ne')
 
 build_field_lines_btn = t.Button(text='Нарисовать линии\n поля', width=17, height=2, command=draw_field,
                                  font='Calibri 16')
@@ -379,12 +405,6 @@ clear_surface_btn = t.Button(text='Удалить экв.\n поверхност
                              font='Calibri 16')
 clear_surface_btn.pack()
 clear_surface_btn.place(x=(W_X - CANVAS_WIDTH) - 20, y=380, anchor='ne')
-
-change_chr_btn = t.Button(text='Изменить\n выбр. заряд', width=17, height=2, command=change_spec_charge,
-                          font='Calibri 16')
-change_chr_btn.pack()
-change_chr_btn.place(x=(W_X - CANVAS_WIDTH) - 20, y=480, anchor='ne')
-change_chr_btn["state"] = 'disabled'
 
 clear_all_btn = t.Button(text='Удалить всё', width=17, height=2, command=clear_all_charges,
                          font='Calibri 16')
@@ -434,5 +454,4 @@ root.bind('<KeyPress>', check_seq)
 
 create_grid()
 root.bind('<ButtonPress-1>', left_bt_prsd)
-root.bind('<ButtonPress-3>', right_bt_prsd)
 root.mainloop()

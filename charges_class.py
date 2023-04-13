@@ -38,6 +38,12 @@ class Charge:
                                                tags='charge',
                                                outline=color)
 
+    def in_the_charge(self, mouse_x, mouse_y):
+        if self.radius ** 2 > (mouse_x - self.x) ** 2 + (mouse_y - self.y) ** 2:
+            self.select(mouse_x, mouse_y)
+            return True
+        return False
+
     def deselect(self):
         self.selected = False
         self.canvas.delete(self.img)

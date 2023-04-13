@@ -4,6 +4,6 @@ CANVAS_X = 480
 ST_RAD = 25
 ST_CHARGE = 1
 ST_PTN = 1
-COEFF = 1000
+COEFF = 100
 ST_LENGTH = 5
 COLOR_LIST = ['red', 'blue', 'pink', 'green', 'brown', 'orange', 'purple']
