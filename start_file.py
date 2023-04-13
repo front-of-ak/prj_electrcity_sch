@@ -290,6 +290,7 @@ def enable_all():
     # clear_all_btn['state'] = 'normal'
     clear_all_btn['state'] = 'normal'
 
+
 def open_start():
     pass
 
@@ -306,8 +307,8 @@ def open_help():
 
 def clear_all_charges():
     global charges
-    canvas.delete('charge')
-    canvas.delete('lines')
+    canvas.delete(t.ALL)
+    create_grid()
     charges = []
 
 
@@ -445,9 +446,17 @@ def input_protection(inp_message, inp_field):
         inp_field.insert(0, redact_message)
 
 
-def check_seq(e):
+def check_seq(event):
     input_protection(inp_value_ch.get(), charge_inp)
     input_protection(inp_value_pt.get(), potent_inp)
+    if event.keysym == 'Delete':
+        selected_ch = list(filter(lambda x: x.selected, charges))
+        if selected_ch:
+            selected_ch = selected_ch[-1]
+            selected_ch.deselect()
+            canvas.delete(f'charge{id(selected_ch)}', f'sign{id(selected_ch)}')
+            charges.remove(selected_ch)
+            enable_all()
 
 
 root.bind('<KeyPress>', check_seq)

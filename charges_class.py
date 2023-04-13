@@ -16,7 +16,7 @@ class Charge:
         self.charge = kwargs['ch']
         self.prev_x, self.prev_y = self.x, self.y
         self.img = self.canvas.create_oval(self.x - self.radius, self.y - self.radius,
-                                           self.x + self.radius, self.y + self.radius, width=2, tags='charge')
+                                           self.x + self.radius, self.y + self.radius, width=2, tags=f'charge{id(self)}')
         self.arrow = tkinter.LAST
         if self.charge < 0:
             self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
@@ -35,7 +35,7 @@ class Charge:
             self.canvas.delete(self.img)
             self.img = self.canvas.create_oval(self.x - self.radius, self.y - self.radius,
                                                self.x + self.radius, self.y + self.radius, width=5,
-                                               tags='charge',
+                                               tags=f'charge{id(self)}',
                                                outline=color)
 
     def in_the_charge(self, mouse_x, mouse_y):
@@ -48,7 +48,7 @@ class Charge:
         self.selected = False
         self.canvas.delete(self.img)
         self.img = self.canvas.create_oval(self.x - self.radius, self.y - self.radius,
-                                           self.x + self.radius, self.y + self.radius, width=2, tags='charge')
+                                           self.x + self.radius, self.y + self.radius, width=2, tags=f'charge{id(self)}')
         self.canvas.delete(f'sign{id(self)}')
         if self.charge < 0:
 
