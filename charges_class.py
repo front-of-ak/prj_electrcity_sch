@@ -7,6 +7,7 @@ class Charge:
     selected = False
     radius = ST_RAD
     charge = ST_CHARGE
+    capacitored = False
 
     def __init__(self, *args, **kwargs):
         self.canvas = kwargs['canvas']
@@ -19,15 +20,15 @@ class Charge:
                                            self.x + self.radius, self.y + self.radius, width=2, tags=f'charge{id(self)}')
         self.arrow = tkinter.LAST
         if self.charge < 0:
-            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
-                                                 tags=f'sign{id(self)}'),
+            self.sign = (self.canvas.create_line(self.x - self.radius + 5, self.y, self.x + self.radius - 5, self.y,
+                                                 tags=f'sign{id(self)}', width=5),
                          None)
             self.arrow = tkinter.FIRST
         else:
-            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
-                                                 tags=f'sign{id(self)}'),
-                         self.canvas.create_line(self.x, self.y - self.radius, self.x, self.y + self.radius,
-                                                 tags=f'sign{id(self)}'))
+            self.sign = (self.canvas.create_line(self.x - self.radius + 5, self.y, self.x + self.radius - 5, self.y,
+                                                 tags=f'sign{id(self)}', width=5),
+                         self.canvas.create_line(self.x, self.y - self.radius + 5, self.x, self.y + self.radius - 5,
+                                                 tags=f'sign{id(self)}', width=5))
 
     def select(self, mouse_x, mouse_y, color='black'):
         if self.radius ** 2 > (mouse_x - self.x) ** 2 + (mouse_y - self.y) ** 2:
@@ -40,7 +41,6 @@ class Charge:
 
     def in_the_charge(self, mouse_x, mouse_y):
         if self.radius ** 2 > (mouse_x - self.x) ** 2 + (mouse_y - self.y) ** 2:
-            self.select(mouse_x, mouse_y)
             return True
         return False
 
@@ -51,16 +51,15 @@ class Charge:
                                            self.x + self.radius, self.y + self.radius, width=2, tags=f'charge{id(self)}')
         self.canvas.delete(f'sign{id(self)}')
         if self.charge < 0:
-
-            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
-                                                 tags=f'sign{id(self)}'),
+            self.sign = (self.canvas.create_line(self.x - self.radius + 5, self.y, self.x + self.radius - 5, self.y,
+                                                 tags=f'sign{id(self)}', width=5),
                          None)
             self.arrow = tkinter.FIRST
         else:
-            self.sign = (self.canvas.create_line(self.x - self.radius, self.y, self.x + self.radius, self.y,
-                                                 tags=f'sign{id(self)}'),
-                         self.canvas.create_line(self.x, self.y - self.radius, self.x, self.y + self.radius,
-                                                 tags=f'sign{id(self)}'))
+            self.sign = (self.canvas.create_line(self.x - self.radius + 5, self.y, self.x + self.radius - 5, self.y,
+                                                 tags=f'sign{id(self)}', width=5),
+                         self.canvas.create_line(self.x, self.y - self.radius + 5, self.x, self.y + self.radius - 5,
+                                                 tags=f'sign{id(self)}', width=5))
             self.arrow = tkinter.LAST
 
     def change_coords(self, new_x, new_y):
